@@ -47,6 +47,9 @@ exports.db = (0, firestore_1.getFirestore)();
 app.post('/api/users', controller_1.default.createUser);
 app.put('/api/users/:userID', controller_1.default.updateUser);
 app.post('/api/testBatch', controller_1.default.testBatch);
+app.get('/api/users', controller_1.default.getAllUser);
+app.get('/api/users/:userID', controller_1.default.getUserByUserID);
+app.get('/api/city', controller_1.default.getAllUserByCity);
 app.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);
 });

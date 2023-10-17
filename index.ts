@@ -25,6 +25,9 @@ export const db = getFirestore();
 app.post('/api/users', UserController.createUser);
 app.put('/api/users/:userID', UserController.updateUser);
 app.post('/api/testBatch', UserController.testBatch);
+app.get('/api/users', UserController.getAllUser);
+app.get('/api/users/:userID', UserController.getUserByUserID);
+app.get('/api/city', UserController.getAllUserByCity);
 
 app.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);

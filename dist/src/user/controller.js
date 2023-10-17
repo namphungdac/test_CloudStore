@@ -71,6 +71,85 @@ class UserController {
             });
         }
     }
+    static async getAllUser(req, res) {
+        try {
+            const data = [];
+            const snapshot = await index_1.db.collection('users').orderBy("born").get();
+            snapshot.forEach((doc) => {
+                data.push({
+                    "userID": doc.id,
+                    "data": doc.data()
+                });
+            });
+            console.log(data[0].data.userName);
+            res.status(200).json({
+                message: "Get all user success!",
+                data: data
+            });
+        }
+        catch (e) {
+            res.status(500).json({
+                message: e.message
+            });
+        }
+    }
+    static async getUserByUserID(req, res) {
+        try {
+            const userID = req.params.userID;
+            const userRef = index_1.db.collection("users").doc(userID);
+            const user = await userRef.get();
+            console.log(user.data());
+            if (!user.exists) {
+                res.status(200).json({
+                    message: "User not exits!",
+                });
+            }
+            else {
+                res.status(200).json({
+                    message: "Get user success!",
+                    data: user.data()
+                });
+            }
+        }
+        catch (e) {
+            res.status(500).json({
+                message: e.message
+            });
+        }
+    }
+    static async getAllUserByCity(req, res) {
+        try {
+            const city = req.body.address;
+            const usersRef = index_1.db.collection("users");
+            const snapshot = await usersRef
+                .where("address", "==", city)
+                .orderBy("born")
+                .limit(2)
+                .get();
+            if (snapshot.empty) {
+                return res.status(200).json({
+                    message: "City not exits!",
+                });
+            }
+            const data = [];
+            snapshot.forEach(doc => {
+                data.push({
+                    "userID": doc.id,
+                    "data": doc.data()
+                });
+            });
+            console.log(data);
+            res.status(200).json({
+                message: "Get users of city success!",
+                data: data
+            });
+        }
+        catch (e) {
+            res.status(500).json({
+                message: e.message
+            });
+        }
+    }
 }
 exports.default = UserController;
 //# sourceMappingURL=controller.js.map
