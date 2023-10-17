@@ -30,20 +30,23 @@ exports.db = void 0;
 const express_1 = __importDefault(require("express"));
 const body_parser_1 = __importDefault(require("body-parser"));
 const fs = __importStar(require("fs"));
-const controller_1 = __importDefault(require("./src/user/controller"));
-const admin = __importStar(require("firebase-admin"));
 const process = __importStar(require("process"));
+const controller_1 = __importDefault(require("./src/user/controller"));
+const app_1 = require("firebase-admin/app");
+const firestore_1 = require("firebase-admin/firestore");
 const PORT = process.env.PORT || 3000;
 const app = (0, express_1.default)();
 app.use(body_parser_1.default.urlencoded({ extended: true }));
 app.use(body_parser_1.default.json());
 const jsonString = fs.readFileSync('key.json', 'utf8');
 const credentials = JSON.parse(jsonString);
-admin.initializeApp({
-    credential: admin.credential.cert(credentials)
+(0, app_1.initializeApp)({
+    credential: (0, app_1.cert)(credentials)
 });
-exports.db = admin.firestore();
+exports.db = (0, firestore_1.getFirestore)();
 app.post('/api/users', controller_1.default.createUser);
+app.put('/api/users/:userID', controller_1.default.updateUser);
+app.post('/api/testBatch', controller_1.default.testBatch);
 app.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);
 });
