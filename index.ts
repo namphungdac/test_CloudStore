@@ -29,6 +29,10 @@ app.get('/api/users', UserController.getAllUser);
 app.get('/api/users/:userID', UserController.getUserByUserID);
 app.get('/api/city', UserController.getAllUserByCity);
 
+app.post('/api/users/:userID/holding', UserController.holding);
+app.post('/api/users/:userID/following', UserController.following);
+app.post('/api/users/:userID/unfollow', UserController.unfollow);
+
 app.listen(PORT, () => {
     console.log(`Server is running at http://localhost:${PORT}`);
 });

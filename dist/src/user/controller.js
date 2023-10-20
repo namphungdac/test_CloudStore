@@ -7,17 +7,28 @@ class UserController {
         try {
             const { userName, address, born } = req.body;
             const user = {
-                userName: userName,
-                address: address,
+                id: null,
+                name: null,
                 born: born,
-                createAt: firestore_1.Timestamp.fromDate(new Date())
+                address: address,
+                userName: userName,
+                following: [],
+                followers: [],
+                createdAt: firestore_1.Timestamp.now(),
+                updatedAt: null,
+                totalTweets: 0,
+                holderCount: 0,
+                holdingCount: 0
             };
-            const newUserRef = await index_1.db.collection("users").add(user);
+            const batch = index_1.db.batch();
+            const userRef = index_1.db.collection("users").doc();
+            console.log(userRef.id);
+            batch.set(userRef, user);
+            batch.update(userRef, { id: userRef.id });
+            await batch.commit();
             res.status(200).json({
                 message: "Create user success!",
-                data: newUserRef
             });
-            console.log("Document written with ID: ", newUserRef.id);
         }
         catch (e) {
             res.status(500).json({
@@ -77,11 +88,10 @@ class UserController {
             const snapshot = await index_1.db.collection('users').orderBy("born").get();
             snapshot.forEach((doc) => {
                 data.push({
-                    "userID": doc.id,
-                    "data": doc.data()
+                    userID: doc.id,
+                    data: doc.data()
                 });
             });
-            console.log(data[0].data.userName);
             res.status(200).json({
                 message: "Get all user success!",
                 data: data
@@ -98,7 +108,7 @@ class UserController {
             const userID = req.params.userID;
             const userRef = index_1.db.collection("users").doc(userID);
             const user = await userRef.get();
-            console.log(user.data());
+            console.log(user.data().following);
             if (!user.exists) {
                 res.status(200).json({
                     message: "User not exits!",
@@ -142,6 +152,70 @@ class UserController {
             res.status(200).json({
                 message: "Get users of city success!",
                 data: data
+            });
+        }
+        catch (e) {
+            res.status(500).json({
+                message: e.message
+            });
+        }
+    }
+    static async holding(req, res) {
+        try {
+            const batch = index_1.db.batch();
+            const userID = req.params.userID;
+            const { holdingID, amount } = req.body;
+            const userRef = index_1.db.collection("users").doc(userID).collection("holding").doc(holdingID);
+            batch.set(userRef, { amount: amount });
+            const holdingRef = index_1.db.collection("users").doc(holdingID).collection("holder").doc(userID);
+            batch.set(holdingRef, { amount: amount });
+            await batch.commit();
+            res.status(200).json({
+                message: "Add new holding success!",
+            });
+        }
+        catch (e) {
+            res.status(500).json({
+                message: e.message
+            });
+        }
+    }
+    static async following(req, res) {
+        try {
+            const userID = req.params.userID;
+            const { followingID } = req.body;
+            const userRef = index_1.db.collection("users").doc(userID);
+            const followingRef = index_1.db.collection("users").doc(followingID);
+            await userRef.update({
+                following: firestore_1.FieldValue.arrayUnion(followingID)
+            });
+            await followingRef.update({
+                followers: firestore_1.FieldValue.arrayUnion(userID)
+            });
+            res.status(200).json({
+                message: "Following success!",
+            });
+        }
+        catch (e) {
+            res.status(500).json({
+                message: e.message
+            });
+        }
+    }
+    static async unfollow(req, res) {
+        try {
+            const userID = req.params.userID;
+            const { unfollowID } = req.body;
+            const userRef = index_1.db.collection("users").doc(userID);
+            const unfollowRef = index_1.db.collection("users").doc(unfollowID);
+            await userRef.update({
+                following: firestore_1.FieldValue.arrayRemove(unfollowID)
+            });
+            await unfollowRef.update({
+                followers: firestore_1.FieldValue.arrayRemove(userID)
+            });
+            res.status(200).json({
+                message: "Unfollowed success!",
             });
         }
         catch (e) {
