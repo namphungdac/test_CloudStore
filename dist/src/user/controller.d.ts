@@ -6,7 +6,8 @@ declare class UserController {
     static getAllUser(req: Request, res: Response): Promise<void>;
     static getUserByUserID(req: Request, res: Response): Promise<void>;
     static getAllUserByCity(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
-    static holding(req: Request, res: Response): Promise<void>;
+    static holding(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
+    static unHolding(req: Request, res: Response): Promise<Response<any, Record<string, any>>>;
     static following(req: Request, res: Response): Promise<void>;
     static unfollow(req: Request, res: Response): Promise<void>;
 }

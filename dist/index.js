@@ -51,6 +51,7 @@ app.get('/api/users', controller_1.default.getAllUser);
 app.get('/api/users/:userID', controller_1.default.getUserByUserID);
 app.get('/api/city', controller_1.default.getAllUserByCity);
 app.post('/api/users/:userID/holding', controller_1.default.holding);
+app.post('/api/users/:userID/unHolding', controller_1.default.unHolding);
 app.post('/api/users/:userID/following', controller_1.default.following);
 app.post('/api/users/:userID/unfollow', controller_1.default.unfollow);
 app.listen(PORT, () => {

@@ -30,6 +30,7 @@ app.get('/api/users/:userID', UserController.getUserByUserID);
 app.get('/api/city', UserController.getAllUserByCity);
 
 app.post('/api/users/:userID/holding', UserController.holding);
+app.post('/api/users/:userID/unHolding', UserController.unHolding);
 app.post('/api/users/:userID/following', UserController.following);
 app.post('/api/users/:userID/unfollow', UserController.unfollow);
 

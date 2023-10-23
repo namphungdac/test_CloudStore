@@ -29,12 +29,9 @@ class UserController {
             //     data: newUser
             // });
             // const newUserRef = await db.collection("users").add(user);
-            const batch = db.batch();
             const userRef = db.collection("users").doc();
             console.log(userRef.id);
-            batch.set(userRef, user);
-            batch.update(userRef, {id: userRef.id});
-            await batch.commit();
+            await userRef.set({...user, id: userRef.id});
             res.status(200).json({
                 message: "Create user success!",
             });
@@ -81,6 +78,7 @@ class UserController {
             // console.log(userRef.path);
             // console.log(userRef.id)
             // const updatedUser = await userRef.update(user);
+            // To update some fields of a document without overwriting the entire document => use update() methods
             const updatedUser = await userRef.set(user, {
                 merge: true
             });
@@ -176,22 +174,64 @@ class UserController {
 
     static async holding (req: Request, res: Response) {
         try {
-            const batch = db.batch();
             const userID: string = req.params.userID;
             const {holdingID, amount} = req.body;
-            const userRef = db.collection("users").doc(userID).collection("holding").doc(holdingID);
-            batch.set(userRef, {amount: amount});
-            // const newHolding = await userRef.set({
+            const userRef = db.collection("users").doc(userID);
+            const holdingRef = db.collection("users").doc(holdingID);
+            const userHoldingRef = userRef.collection("holding").doc(holdingID);
+            const holdingHolderRef = holdingRef.collection("holder").doc(userID);
+            // const newHolding = await userHoldingRef.set({
             //     amount: amount
             // });
-            const holdingRef = db.collection("users").doc(holdingID).collection("holder").doc(userID);
-            batch.set(holdingRef, {amount: amount});
-            // const newHolder = await holdingRef.set({
+            // const newHolder = await holdingHolderRef.set({
             //     amount: amount
             // });
+            const userHoldingDoc = await userHoldingRef.get();
+            if (userHoldingDoc.exists) {
+                return res.status(200).json({
+                    message: "Add new holding fail!",
+                    Err: "HoldingID already exist"
+                });
+            }
+            const batch = db.batch();
+            batch.set(userHoldingRef, {amount: amount});
+            batch.set(holdingHolderRef, {amount: amount});
+            batch.update(userRef, {holdingCount: FieldValue.increment(1)});
+            batch.update(holdingRef, {holderCount: FieldValue.increment(1)});
             await batch.commit();
             res.status(200).json({
                 message: "Add new holding success!",
+            });
+        } catch (e) {
+            res.status(500).json({
+                message: e.message
+            });
+        }
+    }
+
+    static async unHolding (req: Request, res: Response) {
+        try {
+            const userID: string = req.params.userID;
+            const {unHoldingID, amount} = req.body;
+            const userRef = db.collection("users").doc(userID);
+            const unHoldingRef = db.collection("users").doc(unHoldingID);
+            const userUnHoldingRef = userRef.collection("holding").doc(unHoldingID);
+            const unHoldingHolderRef = unHoldingRef.collection("holder").doc(userID);
+            const userUnHoldingDoc = await userUnHoldingRef.get();
+            if (!userUnHoldingDoc.exists) {
+                return res.status(200).json({
+                    message: "UnHolding fail!",
+                    Err: "HoldingID does not exist"
+                });
+            }
+            const batch = db.batch();
+            batch.delete(userUnHoldingRef);
+            batch.delete(unHoldingHolderRef);
+            batch.update(userRef, {holdingCount: FieldValue.increment(-1)});
+            batch.update(unHoldingRef, {holderCount: FieldValue.increment(-1)});
+            await batch.commit();
+            res.status(200).json({
+                message: "UnHolding success!",
             });
         } catch (e) {
             res.status(500).json({
@@ -218,12 +258,17 @@ class UserController {
             // });
 
             //FieldValue.arrayUnion() => adds elements to an array but only elements not already present
-            await userRef.update({
-                following: FieldValue.arrayUnion(followingID)
-            });
-            await followingRef.update({
-                followers: FieldValue.arrayUnion(userID)
-            });
+            // await userRef.update({
+            //     following: FieldValue.arrayUnion(followingID)
+            // });
+            // await followingRef.update({
+            //     followers: FieldValue.arrayUnion(userID)
+            // });
+
+            const batch = db.batch();
+            batch.update(userRef, {following: FieldValue.arrayUnion(followingID)});
+            batch.update(followingRef, {  followers: FieldValue.arrayUnion(userID)});
+            await batch.commit();
             res.status(200).json({
                 message: "Following success!",
             });
@@ -240,13 +285,18 @@ class UserController {
             const {unfollowID} = req.body;
             const userRef = db.collection("users").doc(userID);
             const unfollowRef = db.collection("users").doc(unfollowID);
-            await userRef.update({
-                following: FieldValue.arrayRemove(unfollowID)
-            });
-            //FieldValue.arrayRemove() => removes all instances of each given element.
-            await unfollowRef.update({
-                followers: FieldValue.arrayRemove(userID)
-            });
+            //FieldValue.arrayRemove() => removes all instances of each given element
+            // await userRef.update({
+            //     following: FieldValue.arrayRemove(unfollowID)
+            // });
+            // await unfollowRef.update({
+            //     followers: FieldValue.arrayRemove(userID)
+            // });
+            
+            const batch = db.batch();
+            batch.update(userRef, {following: FieldValue.arrayRemove(unfollowID)});
+            batch.update(unfollowRef, {  followers: FieldValue.arrayRemove(userID)});
+            await batch.commit();
             res.status(200).json({
                 message: "Unfollowed success!",
             });

@@ -20,12 +20,9 @@ class UserController {
                 holderCount: 0,
                 holdingCount: 0
             };
-            const batch = index_1.db.batch();
             const userRef = index_1.db.collection("users").doc();
             console.log(userRef.id);
-            batch.set(userRef, user);
-            batch.update(userRef, { id: userRef.id });
-            await batch.commit();
+            await userRef.set(Object.assign(Object.assign({}, user), { id: userRef.id }));
             res.status(200).json({
                 message: "Create user success!",
             });
@@ -162,16 +159,58 @@ class UserController {
     }
     static async holding(req, res) {
         try {
-            const batch = index_1.db.batch();
             const userID = req.params.userID;
             const { holdingID, amount } = req.body;
-            const userRef = index_1.db.collection("users").doc(userID).collection("holding").doc(holdingID);
-            batch.set(userRef, { amount: amount });
-            const holdingRef = index_1.db.collection("users").doc(holdingID).collection("holder").doc(userID);
-            batch.set(holdingRef, { amount: amount });
+            const userRef = index_1.db.collection("users").doc(userID);
+            const holdingRef = index_1.db.collection("users").doc(holdingID);
+            const userHoldingRef = userRef.collection("holding").doc(holdingID);
+            const holdingHolderRef = holdingRef.collection("holder").doc(userID);
+            const userHoldingDoc = await userHoldingRef.get();
+            if (userHoldingDoc.exists) {
+                return res.status(200).json({
+                    message: "Add new holding fail!",
+                    Err: "HoldingID already exist"
+                });
+            }
+            const batch = index_1.db.batch();
+            batch.set(userHoldingRef, { amount: amount });
+            batch.set(holdingHolderRef, { amount: amount });
+            batch.update(userRef, { holdingCount: firestore_1.FieldValue.increment(1) });
+            batch.update(holdingRef, { holderCount: firestore_1.FieldValue.increment(1) });
             await batch.commit();
             res.status(200).json({
                 message: "Add new holding success!",
+            });
+        }
+        catch (e) {
+            res.status(500).json({
+                message: e.message
+            });
+        }
+    }
+    static async unHolding(req, res) {
+        try {
+            const userID = req.params.userID;
+            const { unHoldingID, amount } = req.body;
+            const userRef = index_1.db.collection("users").doc(userID);
+            const unHoldingRef = index_1.db.collection("users").doc(unHoldingID);
+            const userUnHoldingRef = userRef.collection("holding").doc(unHoldingID);
+            const unHoldingHolderRef = unHoldingRef.collection("holder").doc(userID);
+            const userUnHoldingDoc = await userUnHoldingRef.get();
+            if (!userUnHoldingDoc.exists) {
+                return res.status(200).json({
+                    message: "UnHolding fail!",
+                    Err: "HoldingID does not exist"
+                });
+            }
+            const batch = index_1.db.batch();
+            batch.delete(userUnHoldingRef);
+            batch.delete(unHoldingHolderRef);
+            batch.update(userRef, { holdingCount: firestore_1.FieldValue.increment(-1) });
+            batch.update(unHoldingRef, { holderCount: firestore_1.FieldValue.increment(-1) });
+            await batch.commit();
+            res.status(200).json({
+                message: "UnHolding success!",
             });
         }
         catch (e) {
@@ -186,12 +225,10 @@ class UserController {
             const { followingID } = req.body;
             const userRef = index_1.db.collection("users").doc(userID);
             const followingRef = index_1.db.collection("users").doc(followingID);
-            await userRef.update({
-                following: firestore_1.FieldValue.arrayUnion(followingID)
-            });
-            await followingRef.update({
-                followers: firestore_1.FieldValue.arrayUnion(userID)
-            });
+            const batch = index_1.db.batch();
+            batch.update(userRef, { following: firestore_1.FieldValue.arrayUnion(followingID) });
+            batch.update(followingRef, { followers: firestore_1.FieldValue.arrayUnion(userID) });
+            await batch.commit();
             res.status(200).json({
                 message: "Following success!",
             });
@@ -208,12 +245,10 @@ class UserController {
             const { unfollowID } = req.body;
             const userRef = index_1.db.collection("users").doc(userID);
             const unfollowRef = index_1.db.collection("users").doc(unfollowID);
-            await userRef.update({
-                following: firestore_1.FieldValue.arrayRemove(unfollowID)
-            });
-            await unfollowRef.update({
-                followers: firestore_1.FieldValue.arrayRemove(userID)
-            });
+            const batch = index_1.db.batch();
+            batch.update(userRef, { following: firestore_1.FieldValue.arrayRemove(unfollowID) });
+            batch.update(unfollowRef, { followers: firestore_1.FieldValue.arrayRemove(userID) });
+            await batch.commit();
             res.status(200).json({
                 message: "Unfollowed success!",
             });
